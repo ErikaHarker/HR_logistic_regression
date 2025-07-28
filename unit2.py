@@ -5,11 +5,11 @@ from sklearn.model_selection import train_test_split
 from sklearn import preprocessing
 #libreria para el modelo de regresion logistica
 from sklearn.linear_model import LogisticRegression
-import sklearn.metrics as metrics_lr
+from sklearn.metrics import accuracy_score, confusion_matrix
 
-import statsmodels.api as sm
-import statsmodels.formula.api as smf
-from statsmodels.stats.weightstats import ttest_ind
+#Librerias para arboles
+from sklearn.tree import DecisionTreeClassifier
+from sklearn import svm
 
 def class_to_int(df, key):
     #Encuentra las clases de una columna (key) y las ordena alfabeticamente
@@ -39,24 +39,14 @@ def data_file_clean(data_file):
     data_file = class_to_int(data_file, 'Over18')
     return data_file
 
-def logit_regression_sklearn(X, y, X_train, y_train):
-                                    
-    #Modelo de regresion logistica (sklearn)
-    model = LogisticRegression(solver='lbfgs', max_iter=5000)
+def train_evaluate_sklearn(model, X_train, X_test, y_train, y_test):
+    
     model.fit(X_train, y_train)
 
-    print("Información del modelo")
-    # Información del modelo
-    print("Intercept:", model.intercept_)
-    print("Coeficiente:", list(zip(X.columns, model.coef_.flatten(), )))
-    print("Accuracy de entrenamiento:", model.score(X, y))
-
-    return model
-
-def logit_regression_statsmodels(X, y, X_train, y_train):
-    X_train = sm.add_constant(X_train, prepend=True)
-    model = sm.Logit(y_train, X_train).fit(method='bfgs')
-    print(model.summary())
+    y_pred = model.predict(X_test)
+    print("======== Metrics")
+    print("Accuracy:", accuracy_score(y_test,y_pred))
+    print("Confusion matrix: \n", confusion_matrix(y_test,y_pred))
     return model
     
 
@@ -69,12 +59,24 @@ y = data_file_HR['Attrition']
 
 #Data de entrenamiento y prueba
 #30% de datos de prueba
-X_train, X_test, y_train, y_test = train_test_split(X,  y.values.reshape(-1,1), train_size = 0.7, random_state = 777, shuffle = True)
+X_train, X_test, y_train, y_test = train_test_split(X,  y, train_size = 0.7, random_state = 777, shuffle = True)
 X_train.to_numpy(dtype='int')
 
-model_sklearn = logit_regression_sklearn(X, y, X_train, y_train)
-print("=============================================================")
-model_sklearn = logit_regression_statsmodels(X, y, X_train, y_train)
+#Pruebas con diferentes modelos de la libreria sklearn
+
+model_logistic = LogisticRegression(solver='lbfgs', max_iter=5000)
+model_logistic = train_evaluate_sklearn(model_logistic, X_train, X_test, y_train, y_test)
+#Los Coeficiente solo se pueden obtener en algoritmos lineales
+print("Coeficiente:", list(zip(X.columns, model_logistic.coef_.flatten(), )))
+
+model_tree = DecisionTreeClassifier(criterion='entropy', max_depth=3, max_features=4)
+model_tree = train_evaluate_sklearn(model_tree, X_train, X_test, y_train, y_test)
+
+model_svm = svm.SVC()
+model_svm = train_evaluate_sklearn(model_svm, X_train, X_test, y_train, y_test)
+
+
+
 
 
 
